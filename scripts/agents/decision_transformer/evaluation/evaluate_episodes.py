@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+from util import gym_to_model_observation, model_to_gym_action 
 
 def evaluate_episode(
         env,
@@ -21,7 +22,8 @@ def evaluate_episode(
     state_mean = torch.from_numpy(state_mean).to(device=device)
     state_std = torch.from_numpy(state_std).to(device=device)
 
-    state = env.reset()
+    state, info = env.reset()
+    state = gym_to_model_observation(state)
 
     # we keep all the histories on the device
     # note that the latest action and reward will be "padding"
@@ -47,7 +49,8 @@ def evaluate_episode(
         actions[-1] = action
         action = action.detach().cpu().numpy()
 
-        state, reward, done, _ = env.step(action)
+        state, reward, terminated, truncated, _ = env.step(model_to_gym_action(action))
+        state = gym_to_model_observation(state)
 
         cur_state = torch.from_numpy(state).to(device=device).reshape(1, state_dim)
         states = torch.cat([states, cur_state], dim=0)
@@ -56,7 +59,7 @@ def evaluate_episode(
         episode_return += reward
         episode_length += 1
 
-        if done:
+        if terminated or truncated:
             break
 
     return episode_return, episode_length
@@ -82,7 +85,11 @@ def evaluate_episode_rtg(
     state_mean = torch.from_numpy(state_mean).to(device=device)
     state_std = torch.from_numpy(state_std).to(device=device)
 
-    state = env.reset()
+    state, info = env.reset()
+    n_bus_objs = state['gen_p'].shape[0] + state['load_p'].shape[0] + 2 * state['p_or'].shape[0]
+    n_generators = state['gen_p'].shape[0]
+    n_lines = state['p_or'].shape[0]
+    state = gym_to_model_observation(state)
     if mode == 'noise':
         state = state + np.random.normal(0, 0.1, size=state.shape)
 
@@ -100,7 +107,6 @@ def evaluate_episode_rtg(
 
     episode_return, episode_length = 0, 0
     for t in range(max_ep_len):
-
         # add padding
         actions = torch.cat([actions, torch.zeros((1, act_dim), device=device)], dim=0)
         rewards = torch.cat([rewards, torch.zeros(1, device=device)])
@@ -115,7 +121,8 @@ def evaluate_episode_rtg(
         actions[-1] = action
         action = action.detach().cpu().numpy()
 
-        state, reward, done, _ = env.step(action)
+        state, reward, terminated, truncated, info = env.step(model_to_gym_action(action, n_bus_objs, n_generators, n_lines))
+        state = gym_to_model_observation(state)
 
         cur_state = torch.from_numpy(state).to(device=device).reshape(1, state_dim)
         states = torch.cat([states, cur_state], dim=0)
@@ -134,7 +141,7 @@ def evaluate_episode_rtg(
         episode_return += reward
         episode_length += 1
 
-        if done:
+        if terminated or truncated:
             break
 
     return episode_return, episode_length

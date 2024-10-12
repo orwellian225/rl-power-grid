@@ -3,8 +3,7 @@ import pandas as pd
 import numpy as np
 import random
 
-from scripts.env import Gym2OpEnv
-from scripts.util import print_observation, get_formatted_date
+from scripts.agents.decision_transformer.env import Gym2OpEnv
 import scripts.agents.decision_transformer.util as dtutil
 
 
@@ -28,10 +27,10 @@ np.set_printoptions(linewidth=180)
 
 env = Gym2OpEnv()
 
-def generate_full_random_trajectories(num_trajectories, max_timesteps):
-    generate_freq_random_trajectories(num_trajectories, max_timesteps, 1.0)
+def generate_full_random_trajectories(name, num_trajectories, max_timesteps):
+    generate_freq_random_trajectories(name, num_trajectories, max_timesteps, 1.0)
 
-def generate_freq_random_trajectories(num_trajectories, max_timesteps, frequency):
+def generate_freq_random_trajectories(name, num_trajectories, max_timesteps, frequency):
     print(f"Trajectories are at most {max_timesteps} timesteps in length")
     trajectory = {
         "timestep": [],
@@ -70,11 +69,11 @@ def generate_freq_random_trajectories(num_trajectories, max_timesteps, frequency
 
         print(f"Generated Freq {frequency} Random Trajectory {r} - Lasted {t + 1} timesteps")
     print(f"Generated {len(trajectory['timestep'])} sar tuples")
-    filename = f"./data/trajectories/random_{frequency}.csv"
+    filename = f"./data/trajectories/{name}_{frequency}.csv"
     df = pd.DataFrame.from_dict(trajectory)
     df.to_csv(filename, header=False, index=False)
 
 
 max_timesteps = 5 * 24 * 60 // 5 # Run for 5 days
-generate_full_random_trajectories(200, max_timesteps)
-generate_freq_random_trajectories(200, max_timesteps, 0.1)
+generate_full_random_trajectories("small_random", 10, max_timesteps)
+# generate_freq_random_trajectories(200, max_timesteps, 0.1)

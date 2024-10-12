@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from decision_transformer.training.trainer import Trainer
+from training.trainer import Trainer
 
 
 class SequenceTrainer(Trainer):
@@ -11,7 +11,7 @@ class SequenceTrainer(Trainer):
         action_target = torch.clone(actions)
 
         state_preds, action_preds, reward_preds = self.model.forward(
-            states, actions, rewards, rtg[:,:-1], timesteps, attention_mask=attention_mask,
+            states, actions, rewards, rtg[:,:], timesteps, attention_mask=attention_mask,
         )
 
         act_dim = action_preds.shape[2]
