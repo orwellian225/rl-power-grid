@@ -33,19 +33,19 @@ def generate_full_random_trajectories(num_trajectories, max_timesteps):
 
 def generate_freq_random_trajectories(num_trajectories, max_timesteps, frequency):
     print(f"Trajectories are at most {max_timesteps} timesteps in length")
+    trajectory = {
+        "timestep": [],
+        "state": [],
+        "action": [],
+        "reward": [],
+    }
     for r in range(num_trajectories):
-        obs, info = env.reset()
+        obs, info = env.reset(seed=random.randint(0, 10000))
         num_generators = obs['gen_p'].shape[0]
         num_loads = obs['load_p'].shape[0]
         num_lines = obs['p_or'].shape[0]
         num_bus_objs = num_generators + num_loads + 2 * num_lines
 
-        trajectory = {
-            "timestep": [],
-            "state": [],
-            "action": [],
-            "reward": [],
-        }
         for t in range(max_timesteps):
 
             if random.random() < frequency:
@@ -68,12 +68,13 @@ def generate_freq_random_trajectories(num_trajectories, max_timesteps, frequency
 
             obs = next_obs
 
-        filename = f"./data/trajectories/random_{frequency}__{int(round((datetime.utcnow() - datetime(1970,1,1)).total_seconds()))}.csv"
-        print(f"Generated Freq {frequency} Random Trajectory {r} - Lasted {t + 1} timesteps | saved to {filename}")
-        df = pd.DataFrame.from_dict(trajectory)
-        df.to_csv(filename, header=False, index=False)
+        print(f"Generated Freq {frequency} Random Trajectory {r} - Lasted {t + 1} timesteps")
+    print(f"Generated {len(trajectory['timestep'])} sar tuples")
+    filename = f"./data/trajectories/random_{frequency}.csv"
+    df = pd.DataFrame.from_dict(trajectory)
+    df.to_csv(filename, header=False, index=False)
 
 
 max_timesteps = 5 * 24 * 60 // 5 # Run for 5 days
-generate_full_random_trajectories(10, max_timesteps)
-generate_freq_random_trajectories(10, max_timesteps, 0.1)
+generate_full_random_trajectories(200, max_timesteps)
+generate_freq_random_trajectories(200, max_timesteps, 0.1)

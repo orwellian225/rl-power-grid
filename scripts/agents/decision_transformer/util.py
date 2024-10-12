@@ -38,3 +38,10 @@ def model_to_gym_action(action_vec, num_bus_objs, num_generators, num_lines):
         "set_bus": action_vec[:num_bus_objs],
         "set_line_status": action_vec[num_bus_objs:]
     }
+
+def determine_returns(rewards, timesteps):
+    sum = np.cumsum(rewards)
+    for idx in np.where(timesteps[1:] == 0)[0]: # do not include the first element because it is expected that it is 0
+        sum[idx:] -= sum[idx - 1] 
+
+    return sum
