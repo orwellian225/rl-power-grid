@@ -39,9 +39,11 @@ def model_to_gym_action(action_vec, num_bus_objs, num_generators, num_lines):
         "set_line_status": action_vec[num_bus_objs:]
     }
 
-def determine_returns(rewards, timesteps):
-    sum = np.cumsum(rewards)
-    for idx in np.where(timesteps[1:] == 0)[0]: # do not include the first element because it is expected that it is 0
-        sum[idx:] -= sum[idx - 1] 
+def discounted_returns(timesteps, rewards, discount_factor):
+    discounted_rewards = discount_factor**timesteps * rewards
+    returns = np.cumsum(discounted_rewards)
 
-    return sum
+    for idx in (np.where(timesteps[1:] == 0)[0]) + 1:
+        returns[idx:] -= returns[idx - 1]
+
+    return returns
