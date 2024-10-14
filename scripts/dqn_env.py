@@ -77,8 +77,8 @@ class Gym2OpEnv(gym.Env):
                                                         attr_to_keep=act_attr_to_keep)
         self.action_space = Discrete(self._gym_env.action_space.n)
 
-    # def reset(self, seed=None):
-    #     return self._gym_env.reset(seed=seed, options=None)
+    def reset(self, seed=None):
+        return self._gym_env.reset(seed=seed, options=None)
 
     def step(self, action):
         return self._gym_env.step(action)
@@ -87,9 +87,9 @@ class Gym2OpEnv(gym.Env):
         # TODO: Modify for your own required usage
         return self._gym_env.render()
 
-    def reset(self, *, seed = None, options = None):
-        osb, info = self._gym_env.reset(seed=seed, options=options)
-        return osb, info
+    # def reset(self, *, seed = None, options = None):
+    #     osb, info = self._gym_env.reset(seed=seed, options=options)
+    #     return osb, info
 
 def main():
     # Random agent interacting in environment #
