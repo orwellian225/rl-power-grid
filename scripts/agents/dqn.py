@@ -7,7 +7,7 @@ class DQNAgent:
         # Initialise DQN agent
         self.env = env
         self.model = DQN(
-            "MlpPolicy", 
+            "MultiInputPolicy", 
             env,
             learning_rate=1e-3,
             buffer_size=10000,

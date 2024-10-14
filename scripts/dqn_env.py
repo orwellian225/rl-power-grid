@@ -8,6 +8,7 @@ from grid2op.Parameters import Parameters
 from grid2op.Action import PlayableAction
 from grid2op.Observation import CompleteObservation
 from grid2op.Reward import L2RPNReward, N1Reward, CombinedScaledReward
+from grid2op.gym_compat import DiscreteActSpace
 
 from lightsim2grid import LightSimBackend
 
@@ -70,10 +71,14 @@ class Gym2OpEnv(gym.Env):
         # TODO: Your code to specify & modify the action space goes here
         # See Grid2Op 'getting started' notebooks for guidance
         #  - Notebooks: https://github.com/rte-france/Grid2Op/tree/master/getting_started
-        print("WARNING: setup_actions is not doing anything. Implement your own code in this method.")
+        # print("WARNING: setup_actions is not doing anything. Implement your own code in this method.")
+        act_attr_to_keep =  ["set_line_status_simple", "set_bus"]
+        self._gym_env.action_space = DiscreteActSpace(self._g2op_env.action_space,
+                                                        attr_to_keep=act_attr_to_keep)
+        self.action_space = Discrete(self._gym_env.action_space.n)
 
-    def reset(self, seed=None):
-        return self._gym_env.reset(seed=seed, options=None)
+    # def reset(self, seed=None):
+    #     return self._gym_env.reset(seed=seed, options=None)
 
     def step(self, action):
         return self._gym_env.step(action)
@@ -82,6 +87,9 @@ class Gym2OpEnv(gym.Env):
         # TODO: Modify for your own required usage
         return self._gym_env.render()
 
+    def reset(self, *, seed = None, options = None):
+        osb, info = self._gym_env.reset(seed=seed, options=options)
+        return osb, info
 
 def main():
     # Random agent interacting in environment #
