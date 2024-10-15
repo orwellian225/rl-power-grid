@@ -34,12 +34,12 @@ for t in range(365 * 24 * 60 // 5):
     # Get the latest loss from the CSV file
     # This will be handled automatically by the logger output
     dqn_agent.update(obs, action, reward)
-    total_reward += reward
+    baseline_dqn_reward += reward
     if terminated or truncated:
         print(t)
         break
 
-print(f"Total reward: {total_reward}")
+print(f"Total reward: {baseline_dqn_reward}")
 
 # Save and plot metrics
 dqn_agent.metrics.save()
