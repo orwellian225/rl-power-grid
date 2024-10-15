@@ -51,7 +51,7 @@ dqn_agent.save()
 
 # Run the trained agent and log metrics
 obs, _ = env.reset()
-dqn_agent.metrics.reset(365 * 24 * 60 // 5, "baseline-dqn-agent")
+dqn_agent.metrics.reset(24 * 60 // 5, "baseline-dqn-agent")
 done = False
 total_reward = 0
 
