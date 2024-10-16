@@ -58,6 +58,7 @@ total_reward = 0
 for t in range(365 * 24 * 60 // 5):
     action = dqn_agent.act(obs)
     obs, reward, terminated, truncated, info = env.step(action)
+    # print(info)
     
     # Get the latest loss from the model's logger
     loss = dqn_agent.model.logger.name_to_value.get('train/loss', 0.0)
