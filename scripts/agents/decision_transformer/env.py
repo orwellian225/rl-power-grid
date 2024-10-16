@@ -1,6 +1,6 @@
 import gymnasium as gym
 
-import pygame
+import numpy as np
 
 import grid2op
 from grid2op import gym_compat
@@ -11,8 +11,109 @@ from grid2op.Reward import L2RPNReward, N1Reward, CombinedScaledReward
 
 from lightsim2grid import LightSimBackend
 
-import gymnasium.spaces.utils as gsu
+import gymnasium.spaces as gs
 
+"""
+    Input parameters:
+        * env: the grid2op environment
+        * num_modifiable_bus_objs: The number of objects you want to potentially modify the bus of each timestep
+        * num_modifiable_lines: The number of lines you want to potentially change the status of each timestep
+        * num_curtail_bins: The number of bins to discretize the curtailment into for each generator
+        * num_redispatch_bins: The number of bins to discretize the dispatch into for each generator
+
+    The space:
+        A multidiscrete array of integers
+            * The first num_modifiable_bus_objs correspond to modifying one of the number of bus objects
+            * The next num_modifiable_lines correpsond to modifying the line status of one of the lines
+            * The next num_generators correspond to the curtailment bin - Note that some outputs will be masked out if they can't be curtails
+            * The next num_generators correspond to the redispacth bin - Note that some outputs will be masked out if they can't be redispatched
+
+"""
+class FlatLegalActionSpace(gs.MultiDiscrete):   
+    def __init__(self,
+        env,
+        num_modifiable_bus_objs, 
+        num_modifiable_lines,
+        num_curtail_bins,
+        num_redispatch_bins
+    ):
+
+        self.template_action = env.action_space()
+
+        self.num_buses = env.dim_topo
+        self.num_lines = env.n_line
+        self.num_generators = env.n_gen
+        self.modifiable_buses = num_modifiable_bus_objs
+        self.modifiable_lines = num_modifiable_lines
+
+        space = [env.dim_topo + 1] * num_modifiable_bus_objs + [env.n_line + 1] * num_modifiable_lines
+        self.num_curtail_bins = num_curtail_bins
+        self.curtail_mask = env.gen_renewable
+        print(self.curtail_mask)
+        if num_curtail_bins != 0:
+            self.curtail_bins = np.linspace(
+                start=0., # these numbers are pulled from the limits on the "curtailment" observation
+                stop=1.,
+                num=num_curtail_bins
+            )
+            space += [num_curtail_bins] * self.num_generators
+
+        self.redispatch_bins = []
+        self.num_redispatch_bins = num_redispatch_bins
+        self.dispatch_mask = env.gen_redispatchable
+        max_dispatches = env.gen_max_ramp_up
+        min_dispatches = env.gen_max_ramp_down
+        if num_redispatch_bins != 0:
+            for i in range(env.n_gen):
+                self.redispatch_bins.append(np.linspace(
+                    start=min_dispatches[i],
+                    stop=max_dispatches[i],
+                    num=num_redispatch_bins
+                ))
+                space += [num_redispatch_bins]
+
+        self.space_len = len(space)
+        super().__init__(space)
+
+    def no_action(self):
+        return np.zeros(self.space_len, dtype=np.int64)
+
+    def close(self):
+        pass # stole this from grid2op as a reference
+        # See the below link and scroll to the close method of the __AuxBoxGymActSpace class
+        # https://github.com/Grid2op/grid2op/blob/master/grid2op/gym_compat/box_gym_actspace.py
+
+    def from_gym(self, gym_action):
+        g2op_action = self.template_action.copy()
+        for bus_idx in gym_action[:self.modifiable_buses]:
+            if bus_idx != 0:
+                g2op_action.change_bus = [bus_idx - 1]
+
+        for line_idx in gym_action[self.modifiable_buses:self.modifiable_buses + self.modifiable_lines]:
+            if line_idx != 0:
+                g2op_action.change_line_status = [line_idx - 1]
+
+        if self.num_curtail_bins != 0:
+            start_curtail = self.modifiable_buses + self.modifiable_lines
+            curtails = []
+            for i in range(self.num_generators):
+                if self.curtail_mask[i]:
+                    curtails.append(
+                        (i, self.curtail_bins[gym_action[start_curtail + i]])
+                    )
+
+            g2op_action.curtail = curtails
+
+        if self.num_redispatch_bins != 0:
+            start_redispatch = self.modifiable_buses + self.modifiable_lines + self.num_curtail_bins
+            dispatches = np.zeros(self.num_generators)
+            for i in range(self.num_generators):
+                dispatches[i] = self.redispatch_bins[i][gym_action[start_redispatch + i]]
+
+            g2op_action.redispatch = dispatches * self.dispatch_mask 
+            
+        print(g2op_action)
+        return g2op_action
 
 # Gymnasium environment wrapper around Grid2Op environment
 class Gym2OpEnv(gym.Env):
@@ -65,7 +166,12 @@ class Gym2OpEnv(gym.Env):
         pass
 
     def setup_actions(self):
-        pass
+        """
+            You will encounter a large amount of actions that will straight up just kill the grid, this is fine 
+            To overcome it, the model needs to learn what will and wont kill the grid
+        """
+        
+        self._gym_env.action_space = FlatLegalActionSpace(self._g2op_env, 4, 4, 5, 5)
 
     def reset(self, seed=None):
         return self._gym_env.reset(seed=seed, options=None)
@@ -137,4 +243,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    pass
