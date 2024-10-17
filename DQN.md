@@ -1,6 +1,8 @@
-# DQN Agent for Grid2Op Environment
+# DQN Agent Implementation Details for Grid2Op Environment
 
-## Components
+## Baseline Implementation
+
+### Components
 
 ### 1. Environment (scripts/dqn_env.py)
 
@@ -29,10 +31,10 @@ This setup allows the agent to focus on key grid management actions while simpli
 
 ### 3. Training Script (train_dqn.py)
 
-- This script ties everything together for training and evaluating the DQN agent.
+- This script is responsible for the training and evlaution of the DQN Agent
 - It creates the environment and agent, then trains the agent for a specified number of timesteps.
 - After training, it saves the model and runs an evaluation episode.
-- The evaluation results are logged and plotted using the `Metrics` class.
+- This file is responsible for logging the loss of the model during training using Stable-Baselines callbacks.
 
 ## Improvement 1
 
