@@ -21,22 +21,22 @@ def gym_to_model_action(action, num_bus_objs, num_lines):
         np.zeros(num_lines) # Modifying line status
     ])
 
-    for i, a_val in enumerate(action['set_bus']):
+    for i, a_val in enumerate(action['change_bus']):
         action_vec[i] = a_val
 
-    for i, a_val in enumerate(action['set_line_status']):
+    for i, a_val in enumerate(action['change_line_status']):
         action_vec[num_bus_objs + i] = a_val
 
     return action_vec
 
 def model_to_gym_action(action_vec, num_bus_objs, num_generators, num_lines):
     return {
-        "change_bus": np.zeros(num_bus_objs).astype(np.bool_),
-        "change_line_status": np.zeros(num_lines).astype(np.bool_),
+        # "change_bus": np.zeros(num_bus_objs).astype(np.bool_),
+        # "change_line_status": np.zeros(num_lines).astype(np.bool_),
         "curtail": np.zeros(num_generators).astype(np.float32),
         "redispatch": np.zeros(num_generators).astype(np.float32),
-        "set_bus": action_vec[:num_bus_objs],
-        "set_line_status": action_vec[num_bus_objs:]
+        "change_bus": action_vec[:num_bus_objs],
+        "change_line_status": action_vec[num_bus_objs:]
     }
 
 def discounted_returns(timesteps, rewards, discount_factor):

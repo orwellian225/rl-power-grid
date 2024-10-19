@@ -19,14 +19,14 @@ def experiment(
     device = variant.get('device', 'cuda')
     log_to_wandb = variant.get('log_to_wandb', False)
 
-    dataset = 'small_random_1.0'
+    dataset = variant['dataset']
     model_type = 'decision-transformer'
     group_name = f'{exp_prefix}-powergrid-{dataset}'
     exp_prefix = f'{group_name}-{random.randint(int(1e5), int(1e6) - 1)}'
 
     env = Gym2OpEnv()
-    max_ep_len = 1440
-    env_targets = [1] # what is this?
+    max_ep_len = 10 * 24 * 60 // 5
+    env_targets = [1000] # what is this?
     scale = 1.
 
     # load dataset
@@ -130,9 +130,10 @@ def experiment(
     def eval_episodes(target_rew):
         def fn(model):
             returns, lengths = [], []
+            num_illegal, num_ambiguous = [], []
             for _ in range(num_eval_episodes):
                 with torch.no_grad():
-                    ret, length = evaluate_episode_rtg(
+                    ret, length, n_illegal, n_ambiguous = evaluate_episode_rtg(
                         env,
                         state_dim,
                         act_dim,
@@ -147,11 +148,17 @@ def experiment(
                     )
                 returns.append(ret)
                 lengths.append(length)
+                num_illegal.append(n_illegal)
+                num_ambiguous.append(n_ambiguous)
             return {
                 f'target_{target_rew}_return_mean': np.mean(returns),
                 f'target_{target_rew}_return_std': np.std(returns),
                 f'target_{target_rew}_length_mean': np.mean(lengths),
                 f'target_{target_rew}_length_std': np.std(lengths),
+                f'target_{target_rew}_num_illegal_mean': np.mean(num_illegal),
+                f'target_{target_rew}_num_illegal_std': np.std(num_illegal),
+                f'target_{target_rew}_num_ambiguous_mean': np.mean(num_ambiguous),
+                f'target_{target_rew}_num_ambiguous_std': np.std(num_ambiguous),
             }
         return fn
 
@@ -168,6 +175,7 @@ def experiment(
         n_positions=1024,
         resid_pdrop=variant['dropout'],
         attn_pdrop=variant['dropout'],
+        action_relu=True
     )
 
     model = model.to(device=device)
@@ -202,29 +210,40 @@ def experiment(
         )
         # wandb.watch(model)  # wandb has some bug
 
+    # for eval_fn in trainer.eval_fns:
+    #     outputs = eval_fn(trainer.model)
+    #     for k, v in outputs.items():
+            # logs[f'evaluation/{k}'] = v
+            # print(k, v)
+
     for iter in range(variant['max_iters']):
         outputs = trainer.train_iteration(num_steps=variant['num_steps_per_iter'], iter_num=iter+1, print_logs=True)
         if log_to_wandb:
             wandb.log(outputs)
 
+    if variant["save"]:
+        torch.save(model.state_dict(), f"./scripts/agents/decision_transformer/saved_models/{exp_prefix}.plt")
+
 
 if __name__ == '__main__':
     variant = {
-        "K": 32, # Number of tokens
+        "dataset": "reduced_action_masked_random_0.8",
+        "K": 64, # Number of tokens
         "batch_size": 256,
         "embed_dim": 128, # Dimension of embedding layer in transformer
-        "n_layer": 2, # number of attention-embedding layers
-        "n_head": 4, # number of heads in each attention layer
+        "n_layer": 4, # number of attention-embedding layers
+        "n_head": 8, # number of heads in each attention layer
         "activation_function": "relu",
         "dropout": 0.1,
         "learning_rate": 1e-4,
         "weight_decay": 1e-4,
         "discount_factor": 0.99,
-        "warmup_steps": 100,
+        "warmup_steps": 50,
         "num_eval_episodes": 5,
-        "max_iters": 10,
-        "num_steps_per_iter": 1440,
+        "max_iters": 10, # num epochs
+        "num_steps_per_iter": 1000,
         "device": "cuda",
         "log_to_wandb": True,
+        "save": True,
     }
     experiment('gym-experiment', variant=variant)

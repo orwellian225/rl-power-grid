@@ -21,7 +21,7 @@ class DecisionTransformer(TrajectoryModel):
             hidden_size,
             max_length=None,
             max_ep_len=4096,
-            action_tanh=True,
+            action_relu=True,
             **kwargs
     ):
         super().__init__(state_dim, act_dim, max_length=max_length)
@@ -47,7 +47,7 @@ class DecisionTransformer(TrajectoryModel):
         # note: we don't predict states or returns for the paper
         self.predict_state = torch.nn.Linear(hidden_size, self.state_dim)
         self.predict_action = nn.Sequential(
-            *([nn.Linear(hidden_size, self.act_dim)] + ([nn.Tanh()] if action_tanh else []))
+            *([nn.Linear(hidden_size, self.act_dim)] + ([nn.ReLU()] if action_relu else []))
         )
         self.predict_return = torch.nn.Linear(hidden_size, 1)
 

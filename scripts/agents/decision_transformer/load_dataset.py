@@ -17,7 +17,7 @@ def load_data(filname, _print=False):
 
         timestep = int(line[0])
         observation = np.array(line[1][2:-1].split(), dtype=np.float32)
-        action = np.array(line[2][2:-1].split(), dtype=np.float32)
+        action = np.array(line[2][1:-1].split(), dtype=np.float32)
         reward = float(line[3])
 
         timesteps.append(timestep)

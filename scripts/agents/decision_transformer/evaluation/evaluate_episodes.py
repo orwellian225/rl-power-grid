@@ -49,7 +49,7 @@ def evaluate_episode(
         actions[-1] = action
         action = action.detach().cpu().numpy()
 
-        state, reward, terminated, truncated, _ = env.step(model_to_gym_action(action))
+        state, reward, terminated, truncated, _ = env.step(action)
         state = gym_to_model_observation(state)
 
         cur_state = torch.from_numpy(state).to(device=device).reshape(1, state_dim)
@@ -106,6 +106,7 @@ def evaluate_episode_rtg(
     sim_states = []
 
     episode_return, episode_length = 0, 0
+    num_illegal_actions, num_ambiguous_actions = 0, 0 
     for t in range(max_ep_len):
         # add padding
         actions = torch.cat([actions, torch.zeros((1, act_dim), device=device)], dim=0)
@@ -119,10 +120,16 @@ def evaluate_episode_rtg(
             timesteps.to(dtype=torch.long),
         )
         actions[-1] = action
-        action = action.detach().cpu().numpy()
+        action = action.detach().cpu().numpy().astype(dtype=np.int64)
 
-        state, reward, terminated, truncated, info = env.step(model_to_gym_action(action, n_bus_objs, n_generators, n_lines))
+        state, reward, terminated, truncated, info = env.step(action)
         state = gym_to_model_observation(state)
+
+        if info['is_illegal']:
+            num_illegal_actions += 1
+
+        if info['is_ambiguous']:
+            num_ambiguous_actions += 1
 
         cur_state = torch.from_numpy(state).to(device=device).reshape(1, state_dim)
         states = torch.cat([states, cur_state], dim=0)
@@ -144,4 +151,4 @@ def evaluate_episode_rtg(
         if terminated or truncated:
             break
 
-    return episode_return, episode_length
+    return episode_return, episode_length, num_illegal_actions, num_ambiguous_actions

@@ -49,14 +49,13 @@ class FlatLegalActionSpace(gs.MultiDiscrete):
         space = [env.dim_topo + 1] * num_modifiable_bus_objs + [env.n_line + 1] * num_modifiable_lines
         self.num_curtail_bins = num_curtail_bins
         self.curtail_mask = env.gen_renewable
-        print(self.curtail_mask)
         if num_curtail_bins != 0:
             self.curtail_bins = np.linspace(
                 start=0., # these numbers are pulled from the limits on the "curtailment" observation
                 stop=1.,
                 num=num_curtail_bins
             )
-            space += [num_curtail_bins] * self.num_generators
+            space += [num_curtail_bins + 1] * self.num_generators
 
         self.redispatch_bins = []
         self.num_redispatch_bins = num_redispatch_bins
@@ -70,7 +69,7 @@ class FlatLegalActionSpace(gs.MultiDiscrete):
                     stop=max_dispatches[i],
                     num=num_redispatch_bins
                 ))
-                space += [num_redispatch_bins]
+                space += [num_redispatch_bins + 1]
 
         self.space_len = len(space)
         super().__init__(space)
@@ -97,22 +96,22 @@ class FlatLegalActionSpace(gs.MultiDiscrete):
             start_curtail = self.modifiable_buses + self.modifiable_lines
             curtails = []
             for i in range(self.num_generators):
-                if self.curtail_mask[i]:
+                if self.curtail_mask[i] and gym_action[start_curtail + i] != 0:
                     curtails.append(
-                        (i, self.curtail_bins[gym_action[start_curtail + i]])
+                        (i, self.curtail_bins[gym_action[start_curtail + i] - 1])
                     )
 
             g2op_action.curtail = curtails
 
         if self.num_redispatch_bins != 0:
-            start_redispatch = self.modifiable_buses + self.modifiable_lines + self.num_curtail_bins
+            start_redispatch = self.modifiable_buses + self.modifiable_lines + self.num_generators
             dispatches = np.zeros(self.num_generators)
             for i in range(self.num_generators):
-                dispatches[i] = self.redispatch_bins[i][gym_action[start_redispatch + i]]
+                if gym_action[start_redispatch + i - 1] != 0:
+                    dispatches[i] = self.redispatch_bins[i][gym_action[start_redispatch + i] - 1]
 
             g2op_action.redispatch = dispatches * self.dispatch_mask 
             
-        print(g2op_action)
         return g2op_action
 
 # Gymnasium environment wrapper around Grid2Op environment
@@ -171,7 +170,7 @@ class Gym2OpEnv(gym.Env):
             To overcome it, the model needs to learn what will and wont kill the grid
         """
         
-        self._gym_env.action_space = FlatLegalActionSpace(self._g2op_env, 4, 4, 5, 5)
+        self._gym_env.action_space = FlatLegalActionSpace(self._g2op_env, 1, 1, 11, 11)
 
     def reset(self, seed=None):
         return self._gym_env.reset(seed=seed, options=None)
