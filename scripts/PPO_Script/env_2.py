@@ -29,71 +29,64 @@ import gymnasium.spaces as gs
             * The next num_generators correspond to the redispacth bin - Note that some outputs will be masked out if they can't be redispatched
 
 """
-class FlatLegalActionSpace(gs.MultiDiscrete):   
+
+
+class reducedActionSpace(gs.MultiDiscrete):
     def __init__(self,
-        env,
-        num_modifiable_bus_objs, 
-        num_modifiable_lines,
-        num_curtail_bins,
-        num_redispatch_bins
-    ):
+                 env,
+                 substation_key = [1,4,7,9,16,21,23,26,28,29,32,33],
+                 curtail_bin_counts=11,
+                 redispatch_bin_counts=11
+                 ):
 
         self.template_action = env.action_space()
-
-        self.num_buses = env.dim_topo
-        self.num_lines = env.n_line
+        self.substation_key = substation_key
         self.num_generators = env.n_gen
-        self.modifiable_buses = num_modifiable_bus_objs
-        self.modifiable_lines = num_modifiable_lines
-
-        space = [env.dim_topo + 1] * num_modifiable_bus_objs + [env.n_line + 1] * num_modifiable_lines
-        self.num_curtail_bins = num_curtail_bins
+        # 1st value is sub-1,4,7,9,16,23,26,28,33
+        space = [4] * len(substation_key)
+        self.num_curtail_bins = curtail_bin_counts
         self.curtail_mask = env.gen_renewable
-        if num_curtail_bins != 0:
+        if curtail_bin_counts != 0:
             self.curtail_bins = np.linspace(
-                start=0., # these numbers are pulled from the limits on the "curtailment" observation
+                start=0.,  # these numbers are pulled from the limits on the "curtailment" observation
                 stop=1.,
-                num=num_curtail_bins
+                num=curtail_bin_counts
             )
-            space += [num_curtail_bins + 1] * self.num_generators
+            space += [curtail_bin_counts + 1] * self.num_generators
 
         self.redispatch_bins = []
-        self.num_redispatch_bins = num_redispatch_bins
+        self.num_redispatch_bins = redispatch_bin_counts
         self.dispatch_mask = env.gen_redispatchable
         max_dispatches = env.gen_max_ramp_up
         min_dispatches = env.gen_max_ramp_down
-        if num_redispatch_bins != 0:
+        if redispatch_bin_counts != 0:
             for i in range(env.n_gen):
                 self.redispatch_bins.append(np.linspace(
                     start=min_dispatches[i],
                     stop=max_dispatches[i],
-                    num=num_redispatch_bins
+                    num=redispatch_bin_counts
                 ))
-                space += [num_redispatch_bins + 1]
+                space += [redispatch_bin_counts + 1]
 
-        self.space_len = len(space)
         super().__init__(space)
 
-    def no_action(self):
-        return np.zeros(self.space_len, dtype=np.int64)
-
     def close(self):
-        pass # stole this from grid2op as a reference
+        pass  # stole this from grid2op as a reference
         # See the below link and scroll to the close method of the __AuxBoxGymActSpace class
         # https://github.com/Grid2op/grid2op/blob/master/grid2op/gym_compat/box_gym_actspace.py
 
     def from_gym(self, gym_action):
         g2op_action = self.template_action.copy()
-        for bus_idx in gym_action[:self.modifiable_buses]:
-            if bus_idx != 0:
-                g2op_action.change_bus = [bus_idx - 1]
-
-        for line_idx in gym_action[self.modifiable_buses:self.modifiable_buses + self.modifiable_lines]:
-            if line_idx != 0:
-                g2op_action.change_line_status = [line_idx - 1]
+        for i in range(1,len(self.substation_key)):
+            if gym_action[i] != 1:
+                # gym_action[i] == 0 if you want to disconnect substation bus
+                # if gym_action[i] == 1 do nothing
+                # if gym_action[i] == 2 connect substation to bus 1
+                # if gym_action[i] == 3 connect substation to bus 2
+                g2op_action.set_bus = [(self.substation_key[i], gym_action[i]-1)]
 
         if self.num_curtail_bins != 0:
-            start_curtail = self.modifiable_buses + self.modifiable_lines
+            start_curtail = len(self.substation_key)
             curtails = []
             for i in range(self.num_generators):
                 if self.curtail_mask[i] and gym_action[start_curtail + i] != 0:
@@ -104,15 +97,15 @@ class FlatLegalActionSpace(gs.MultiDiscrete):
             g2op_action.curtail = curtails
 
         if self.num_redispatch_bins != 0:
-            start_redispatch = self.modifiable_buses + self.modifiable_lines + self.num_generators
+            start_redispatch = start_curtail + self.num_generators
             dispatches = np.zeros(self.num_generators)
             for i in range(self.num_generators):
                 if gym_action[start_redispatch + i - 1] != 0:
                     dispatches[i] = self.redispatch_bins[i][gym_action[start_redispatch + i] - 1]
 
-            g2op_action.redispatch = dispatches * self.dispatch_mask 
-            
+            g2op_action.redispatch = dispatches * self.dispatch_mask
         return g2op_action
+
 
 # Gymnasium environment wrapper around Grid2Op environment
 class Gym2OpEnv(gym.Env):
@@ -166,11 +159,10 @@ class Gym2OpEnv(gym.Env):
 
     def setup_actions(self):
         """
-            You will encounter a large amount of actions that will straight up just kill the grid, this is fine 
+            You will encounter a large amount of actions that will straight up just kill the grid, this is fine
             To overcome it, the model needs to learn what will and wont kill the grid
         """
-        
-        self._gym_env.action_space = FlatLegalActionSpace(self._g2op_env, 1, 1, 0, 0)
+        self._gym_env.action_space = reducedActionSpace(self._g2op_env, curtail_bin_counts=5, redispatch_bin_counts=5)
 
     def reset(self, seed=None):
         return self._gym_env.reset(seed=seed, options=None)
@@ -180,67 +172,3 @@ class Gym2OpEnv(gym.Env):
 
     def render(self):
         return self._gym_env.render()
-
-
-def main():
-    # Random agent interacting in environment #
-
-    max_steps = 100
-
-    env = Gym2OpEnv()
-
-    print("#####################")
-    print("# OBSERVATION SPACE #")
-    print("#####################")
-    print(env.observation_space)
-    print("#####################\n")
-
-    print("#####################")
-    print("#   ACTION SPACE    #")
-    print("#####################")
-    print(env.action_space)
-    print("#####################\n\n")
-
-    curr_step = 0
-    curr_return = 0
-
-    is_done = False
-    obs, info = env.reset()
-    print(f"step = {curr_step} (reset):")
-    print(f"\t obs = {obs}")
-    print(f"\t info = {info}\n\n")
-
-    while not is_done and curr_step < max_steps:
-        action = env.action_space.sample()
-        obs, reward, terminated, truncated, info = env.step(action)
-
-        curr_step += 1
-        curr_return += reward
-        is_done = terminated or truncated
-
-        print(f"step = {curr_step}: ")
-        print(f"\t obs = {obs}")
-        print(f"\t reward = {reward}")
-        print(f"\t terminated = {terminated}")
-        print(f"\t truncated = {truncated}")
-        print(f"\t info = {info}")
-
-        # Some actions are invalid (see: https://grid2op.readthedocs.io/en/latest/action.html#illegal-vs-ambiguous)
-        # Invalid actions are replaced with 'do nothing' action
-        is_action_valid = not (info["is_illegal"] or info["is_ambiguous"])
-        print(f"\t is action valid = {is_action_valid}")
-        if not is_action_valid:
-            print(f"\t\t reason = {info['exception']}")
-        print("\n")
-
-    print("###########")
-    print("# SUMMARY #")
-    print("###########")
-    print(f"return = {curr_return}")
-    print(f"total steps = {curr_step}")
-    print("###########")
-
-
-if __name__ == "__main__":
-    # main()
-    pass
