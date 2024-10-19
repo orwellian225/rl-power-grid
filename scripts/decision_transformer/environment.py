@@ -169,8 +169,6 @@ class Gym2OpEnv(gym.Env):
         self.observation_space = self._gym_env.observation_space
         self.action_space = self._gym_env.action_space
 
-        print(self._gym_env.action_space)
-
     def setup_observations(self):
         keeping_attributes = [
             "gen_p", "gen_q", "gen_v", "gen_theta", "gen_p_before_curtail",

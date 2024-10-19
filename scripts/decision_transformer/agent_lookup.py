@@ -1,16 +1,23 @@
 agents = {
     "baseline": [{
         "meta": {
-            "evaluate_file": "./data/decision_transformer/baseline.csv",
-            # "model_file": "./models/dt_baseline.plt"
-            "model_file": "./scripts/agents/decision_transformer/saved_models/dt_baseline.plt"
+            "evaluate_file": "./data/evaluation/dt_baseline.csv",
+            "model_file": "./models/dt_baseline.pth",
+            "data_file": "./data/trajectories/baseline.csv",
+            "device": "cuda",
+            "training_iterations": 1,
+            "training_steps": 5,
         },
         "hyperparams": {
             "max_episode_len": 1440,
             "target_return": 1000.,
-            "state_mean": [0.],
-            "state_std": [1.],
-            "dropout": 0.1
+            "dropout": 0.1,
+            "discount_factor": 0.99,
+            "batch_size": 256,
+            "learning_rate": 1e-4,
+            "weight_decay": 1e-4,
+            "warmup_steps": 100,
+            "eval_episodes": 5,
         },
         "architecture": {
             "num_tokens": 64,
@@ -31,14 +38,21 @@ agents = {
     "alpha": [
         {
             "meta": {
-                "evaluate_file": "./data/decision_transformer/alpha_0.csv"
+                "evaluate_file": "./data/evaluation/dt_alpha_0.csv",
+                "model_file": "./models/dt_alpha_0.pth",
+                "data_file": "./data/trajectories/alpha_0.csv",
+                "device": "cuda",
             },
             "hyperparams": {
                 "max_episode_len": 1440,
                 "target_return": 1000.,
-                "state_mean": [0.],
-                "state_std": [1.],
-                "dropout": 0.1
+                "dropout": 0.1,
+                "discount_factor": 0.99,
+                "batch_size": 256,
+                "learning_rate": 1e-4,
+                "weight_decay": 1e-4,
+                "warmup_steps": 100,
+                "eval_episodes": 5,
             },
             "architecture": {
                 "num_tokens": 64,

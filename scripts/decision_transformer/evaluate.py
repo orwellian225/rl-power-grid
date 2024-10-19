@@ -29,8 +29,6 @@ device = 'cuda'
 state_dim = env.observation_space.shape[0]
 act_dim = len(env.action_space.sample())
 max_episode_len = agent_info["hyperparams"]["max_episode_len"]
-state_mean = torch.from_numpy(np.array(agent_info["hyperparams"]["state_mean"])).to(device=device)
-state_std = torch.from_numpy(np.array([agent_info["hyperparams"]["state_std"]])).to(device=device)
 
 model = DecisionTransformer(
         state_dim=state_dim,
@@ -49,7 +47,7 @@ model = DecisionTransformer(
     )
 model.load_state_dict(torch.load(agent_info["meta"]["model_file"]))
 model.eval()
-model.to(device=device)
+model = model.to(device=device)
 
 episode_returns = np.zeros(evaluation_episodes)
 episode_lengths = np.zeros(evaluation_episodes)
@@ -62,12 +60,12 @@ for ep_i in range(evaluation_episodes):
     timesteps = torch.tensor(0, device=device, dtype=torch.long).reshape(1, 1)
     target_return = torch.tensor(agent_info["hyperparams"]["target_return"], device=device, dtype=torch.float32).reshape(1, 1)
 
-    for t in range(1440):
+    for t in range(max_episode_len):
         actions = torch.cat([actions, torch.zeros((1, act_dim), device=device)], dim=0)
         rewards = torch.cat([rewards, torch.zeros(1, device=device)])
 
         action = model.get_action(
-            (states.to(dtype=torch.float32) - state_mean) / state_std,
+            states.to(dtype=torch.float32),
             actions.to(dtype=torch.float32),
             rewards.to(dtype=torch.float32),
             target_return.to(dtype=torch.float32),
