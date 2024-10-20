@@ -52,13 +52,14 @@ for r in range(num_trajectories):
             mask[np.random.randint(0, env.action_space.shape[0], num_masked_actions)] = 0
             action *= mask
 
-        obs, reward, terminated, truncated, info = env.step(action)
+        next_obs, reward, terminated, truncated, info = env.step(action)
 
         trajectory["timestep"].append(t)
         trajectory["state"].append(obs)
         trajectory["action"].append(action)
         trajectory["reward"].append(reward)
 
+        obs = next_obs
         returns += reward
 
         if terminated or truncated:
@@ -68,7 +69,7 @@ for r in range(num_trajectories):
 print(f"Generated {len(trajectory['timestep'])} sar tuples")
 
 with open(agent_info["meta"]["data_file"], "a+") as f:
-    csvw = csv.writer(f, lineterminator="\r")
+    csvw = csv.writer(f)
 
     for t in range(len(trajectory["timestep"])):
         csvw.writerow([
