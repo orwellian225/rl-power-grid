@@ -72,6 +72,7 @@ class Gym2OpEnv(gym.Env):
         # See Grid2Op 'getting started' notebooks for guidance
         #  - Notebooks: https://github.com/rte-france/Grid2Op/tree/master/getting_started
         # print("WARNING: setup_actions is not doing anything. Implement your own code in this method.")
+
         act_attr_to_keep =  ["set_line_status_simple", "set_bus"]
         self._gym_env.action_space = DiscreteActSpace(self._g2op_env.action_space,
                                                         attr_to_keep=act_attr_to_keep)
@@ -86,10 +87,6 @@ class Gym2OpEnv(gym.Env):
     def render(self):
         # TODO: Modify for your own required usage
         return self._gym_env.render()
-
-    # def reset(self, *, seed = None, options = None):
-    #     osb, info = self._gym_env.reset(seed=seed, options=options)
-    #     return osb, info
 
 def main():
     # Random agent interacting in environment #
