@@ -127,8 +127,7 @@ class Gym2OpEnv(gym.Env):
             )
         )
         
-        # Add custom observations
-        
+        # Custom observations
         # Add connectivity matrix
         shape_conn = (self._g2op_env.dim_topo, self._g2op_env.dim_topo)
         obs_space.add_key(
@@ -163,7 +162,6 @@ class Gym2OpEnv(gym.Env):
             )
         )
         
-        # Update the environment's observation space
         self._gym_env.observation_space = obs_space
 
     def setup_actions(self):
