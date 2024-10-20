@@ -72,85 +72,63 @@ dqn_agent = DQNAgent(env)
 metrics_callback = SimpleMetricsCallback(log_dir)
 
 # Train the DQN Agent with the callback
-total_timesteps = 10000
-dqn_agent.model.learn(total_timesteps, log_interval=1, callback=metrics_callback)
+total_timesteps = 50000
+dqn_agent.model.learn(total_timesteps, log_interval=5, callback=metrics_callback)
 
 # Save the trained model
 dqn_agent.save()
 
-# Run the trained agent and log metrics
-obs, _ = env.reset()
-dqn_agent.metrics.reset(24 * 60 // 5, "improvement-1-dqn-agent")
-done = False
-total_reward = 0
+# Evaluate the trained model
 
-for t in range(365 * 24 * 60 // 5):
-    action = dqn_agent.act(obs)
-    obs, reward, terminated, truncated, info = env.step(action)
-    # print(info)
-    
-    dqn_agent.update(obs, action, reward)
-    total_reward += reward
-    if terminated or truncated:
-        print(t)
-        break
+# Define number of runs for evaluation
+num_runs = 5
+total_steps_per_run = []
+total_rewards_per_run = []
 
-print(f"Total reward: {total_reward}")
+# Loop to run multiple episodes and track metrics
+for run in range(num_runs):
+    obs, _ = env.reset()
+    dqn_agent.metrics.reset(24 * 60 // 5, f"improvement-1-dqn-agent-run-{run+1}")
+    done = False
+    total_reward = 0
+    timesteps = 0
 
-dqn_agent.metrics.save()
+    for t in range(365 * 24 * 60 // 5):
+        action = dqn_agent.act(obs)
+        obs, reward, terminated, truncated, info = env.step(action)
 
-
-
-
-# # Define number of runs for evaluation
-# num_runs = 5
-# total_steps_per_run = []
-# total_rewards_per_run = []
-
-# # Loop to run multiple episodes and track metrics
-# for run in range(num_runs):
-#     obs, _ = env.reset()
-#     dqn_agent.metrics.reset(24 * 60 // 5, f"baseline-dqn-agent-run-{run+1}")
-#     done = False
-#     total_reward = 0
-#     timesteps = 0
-
-#     for t in range(365 * 24 * 60 // 5):
-#         action = dqn_agent.act(obs)
-#         obs, reward, terminated, truncated, info = env.step(action)
-
-#         dqn_agent.update(obs, action, reward)
-#         total_reward += reward
-#         timesteps += 1
+        dqn_agent.update(obs, action, reward)
+        total_reward += reward
+        timesteps += 1
         
-#         if terminated or truncated:
-#             print(f"Run {run+1} terminated after {timesteps} timesteps")
-#             break
+        if terminated or truncated:
+            print(f"Run {run+1} terminated after {timesteps} timesteps")
+            break
 
-#     total_steps_per_run.append(timesteps)
-#     total_rewards_per_run.append(total_reward)
+    total_steps_per_run.append(timesteps)
+    total_rewards_per_run.append(total_reward)
 
-# # Calculate average timesteps and rewards across runs
-# average_steps = np.mean(total_steps_per_run)
-# average_rewards = np.mean(total_rewards_per_run)
+# Calculate average timesteps and rewards across runs
+average_steps = np.mean(total_steps_per_run)
+average_rewards = np.mean(total_rewards_per_run)
 
-# print(f"Average Steps over {num_runs} runs: {average_steps}")
-# print(f"Average total reward over {num_runs} runs: {average_rewards}")
+print(f"Average Steps over {num_runs} runs: {average_steps}")
+print(f"Average total reward over {num_runs} runs: {average_rewards}")
 
-# # Save the averaged results to a CSV file
-# csv_filename = f"{log_dir}/baseline_dqn_evaluation_results.csv"
-# with open(csv_filename, mode='w', newline='') as csv_file:
-#     csv_writer = csv.writer(csv_file)
+# Save the averaged results to a CSV file
+csv_filename = f"{log_dir}/improvement_1_dqn_evaluation_results.csv"
+with open(csv_filename, mode='w', newline='') as csv_file:
+    csv_writer = csv.writer(csv_file)
     
-#     # Write header
-#     csv_writer.writerow(["Run", "Steps", "Total Reward"])
+    # Write header
+    csv_writer.writerow(["Run", "Steps", "Total Reward"])
     
-#     # Write results for each run
-#     for run in range(num_runs):
-#         csv_writer.writerow([f"Run {run+1}", total_steps_per_run[run], total_rewards_per_run[run]])
+    # Write results for each run
+    for run in range(num_runs):
+        csv_writer.writerow([f"Run {run+1}", total_steps_per_run[run], total_rewards_per_run[run]])
     
-#     # Write the average results
-#     csv_writer.writerow(["Average", average_steps, average_rewards])
+    # Write the average results
+    csv_writer.writerow(["Average", average_steps, average_rewards])
 
-# print(f"Results saved to {csv_filename}")
+print(f"Results saved to {csv_filename}")
 
