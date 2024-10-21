@@ -126,3 +126,43 @@ Pruning and discretizing the action space was a crucial improvement for the foll
 
 4. **Scalability**:
    These changes also make the environment more scalable. A large, unpruned action and observation space can cause performance bottlenecks, especially as the grid size grows. The current modifications ensure the environment remains scalable and efficient, even in more complex grid scenarios.
+
+
+## Improvement 2: Transition to QRDQN Architecture
+
+### Overview
+In Improvement 2, we transitioned from a standard DQN implementation to a QRDQN (Quantile Regression DQN) architecture. This change enhances the agent's performance by allowing it to better capture the distribution of returns, rather than just estimating the expected value.
+
+### Key Architectural Changes
+
+1. **Model Type**:
+   - **DQN**: Estimates the expected value of the action-value function with a single output for each action.
+   - **QRDQN**: Predicts multiple quantiles for each action, providing a richer representation of the return distribution.
+
+2. **Output Layer**:
+   - **DQN Output**: A single Q-value for each action.
+   - **QRDQN Output**: Multiple quantiles for each action, giving more detailed insights into possible returns.
+
+3. **Loss Function**:
+   - **DQN**: Uses mean squared error (MSE) to minimize the difference between predicted and target Q-values.
+   - **QRDQN**: Uses a quantile loss function, which is more robust to outliers and helps stabilize training.
+
+4. **Exploration**:
+   - **DQN**: Relies on epsilon-greedy strategies, which can lead to suboptimal exploration.
+   - **QRDQN**: Leverages the distribution of returns to inform more effective exploration strategies.
+
+### Implications of the Architectural Change
+
+- **Improved Performance**: QRDQN’s ability to model the return distribution allows for more informed decision-making, leading to improved learning speed and policy quality.
+- **Better Handling of Uncertainty**: The architecture better captures the variability in outcomes, making it suitable for environments with high uncertainty.
+- **Enhanced Robustness**: The quantile regression approach makes the agent more robust to outliers and noise in the reward signals.
+
+### Rationale for Changes
+
+1. **Capturing Uncertainty**: QRDQN models multiple quantiles, enabling the agent to better handle uncertainty, which is crucial in complex environments like Grid2Op.
+   
+2. **Improved Decision-Making**: The richer output representation helps the agent make more nuanced decisions based on the distribution of returns rather than relying on expected values alone.
+
+3. **Stability in Training**: The quantile loss function reduces the impact of outliers and provides a more reliable learning signal, improving training stability.
+
+4. **Enhanced Exploration Strategies**: By modeling the distribution of returns, QRDQN facilitates more informed exploration strategies, allowing the agent to balance high-risk and low-risk actions better.
