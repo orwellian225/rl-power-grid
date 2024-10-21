@@ -2,9 +2,9 @@
 
 ## Baseline DQN Implementation
 
-The baseline DQN algorithm is implemenrted using the `stable-baselines3` library, which provides a reliable baseline to use got this reinforcement learning task. The agent is trained to interact with the environment and optimise grid operations through learning from rewards.
+The baseline DQN algorithm is implemented using the `stable-baselines3` library, which provides a reliable baseline to use for this reinforcement learning task. The agent is trained to interact with the environment and optimise grid operations through learning from rewards.
 
-### DQN AgentImplementation
+### DQN Agent Implementation
 
 The `DQNAgent` class is responsible for managing the DQN model. Below, we outline the key components of the model and their respective purposes.
 
@@ -41,7 +41,7 @@ These hyperparameters were chosen as they are standard for baseline DQN implemen
 
 - The **learning rate** is low enough to ensure convergence while still allowing the agent to learn from each step.
 - The **buffer size** ensures the agent has sufficient experience to sample from, while not overloading memory.
-- The **target network** updates reduce the likelihood of training instability, common in reinforcement learning tasks with high-dimensional state spaces.
+- The **target network** updates, reduce the likelihood of training instability, common in reinforcement learning tasks with high-dimensional state spaces.
 
 ### Environment Setup
 
@@ -69,24 +69,25 @@ The DQN algorithm, paired with the `MultiInputPolicy`, allows for handling the c
 ## Improvement 1: Action and Observation Space Pruning
 
 ### Observation Space Pruning
-The original observation space from Grid2Op includes a wide variety of attributes, many of which may not be directly relevant or useful for decision-making by the agent. By default, this can result in unnecessary complexity and increase the dimensionality of the input, which can slow down training and effect the agent's ability to generalise. 
+The original observation space from Grid2Op includes a wide variety of attributes, many of which may not be directly relevant or useful for decision-making by the agent. By default, this can result in unnecessary complexity and increase the dimensionality of the input, which can slow down training and affect the agent's ability to generalise. 
 
 #### **Improvements:**
 The observation space has been pruned to focus on key attributes that directly influence decision-making:
 
 - **Retained Attributes:**
    - `rho`: Power flow divided by thermal limits for each line, which is crucial to prevent overloading.
-   - `gen_p`: Active power production, normliased by the maximum generator capacity. This gives the agent an understanding of generation constraints.
+   - `gen_p`: Active power production, normlised by the maximum generator capacity. This gives the agent an understanding of generation constraints.
    - `load_p`: Active power consumption, normalised relative to the initial load, helping the agent prioritise load-shedding decisions.
    - `topo_vect`: The current topology vector, showing how substations are interconnected, crucial for topology reconfiguration.
 - **Removed Attributes:** All other attributes deemed less relevant for the core decision-making process were excluded, significantly reducing the dimensionality of the observation space.
+
 - **Custom Observations:**
    - **Connectivity Matrix**: Represents the network's structure, helping the agent make better decisions about power flow management.
    - **Line Capacity Usage**: The percentage of line capacity being used, giving clear indication of how close each line it to its limits.
    - **Line Overflow**: A binary indicator that signals if any lines are overloaded, allowing the agent to take immediate corrective action.
 
 #### **Rationale:**
-Pruning the observation space focuses the agent's attention on the most critical aspeacts of the environment, which can lead to:
+Pruning the observation space focuses the agent's attention on the most critical aspects of the environment, which can lead to:
    - **Faster Learning**: With fewer input dimensions, the agent can process states more efficiently, leading to faster convergence.
    - **Improved Generalisation**: By focusing on key attributes, the agent is less likely to overfit to irrelevant parts of the observation space, making it more robust in different scenarios.
 
