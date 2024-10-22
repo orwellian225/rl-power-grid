@@ -19,3 +19,18 @@ Run from the top level train script.
 ```bash
 python train.py
 ```
+
+To run baseline DQN Model:
+```bash
+python train_dqn_baseline.py
+```
+
+To run Improvement 1 DQN Model:
+```bash
+python train_dqn_improvement_1.py
+```
+
+To run Improvement 2 DQN Model:
+```bash
+python train_dqn_improvement_2.py
+```
