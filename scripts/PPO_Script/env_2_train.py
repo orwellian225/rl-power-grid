@@ -1,0 +1,150 @@
+import gymnasium as gym
+
+import numpy as np
+
+import grid2op
+from grid2op import gym_compat
+from grid2op.Parameters import Parameters
+from grid2op.Action import PlayableAction
+from grid2op.Observation import CompleteObservation
+from grid2op.Reward import L2RPNReward, N1Reward, CombinedScaledReward
+
+from lightsim2grid import LightSimBackend
+
+import gymnasium.spaces as gs
+
+"""
+    Input parameters:
+        * env: the grid2op environment
+        * num_modifiable_bus_objs: The number of objects you want to potentially modify the bus of each timestep
+        * num_modifiable_lines: The number of lines you want to potentially change the status of each timestep
+        * num_curtail_bins: The number of bins to discretize the curtailment into for each generator
+        * num_redispatch_bins: The number of bins to discretize the dispatch into for each generator
+
+    The space:
+        A multidiscrete array of integers
+            * The first num_modifiable_bus_objs correspond to modifying one of the number of bus objects
+            * The next num_modifiable_lines correpsond to modifying the line status of one of the lines
+            * The next num_generators correspond to the curtailment bin - Note that some outputs will be masked out if they can't be curtails
+            * The next num_generators correspond to the redispacth bin - Note that some outputs will be masked out if they can't be redispatched
+
+"""
+
+
+class reducedActionSpace(gs.MultiDiscrete):
+    def __init__(self,
+                 env,
+                 substation_key = [1,4,7,9,16,21,23,26,28,29,32,33]
+                 ):
+
+        self.template_action = env.action_space()
+        self.substation_key = substation_key
+        self.num_generators = env.n_gen
+        # 1st value is sub-1,4,7,9,16,23,26,28,33
+        space = [4] * len(substation_key)
+        super().__init__(space)
+
+    def close(self):
+        pass  # stole this from grid2op as a reference
+        # See the below link and scroll to the close method of the __AuxBoxGymActSpace class
+        # https://github.com/Grid2op/grid2op/blob/master/grid2op/gym_compat/box_gym_actspace.py
+
+    def from_gym(self, gym_action):
+        g2op_action = self.template_action.copy()
+        for i in range(1,len(self.substation_key)):
+            if gym_action[i] != 1:
+                # gym_action[i] == 0 if you want to disconnect substation bus
+                # if gym_action[i] == 1 do nothing
+                # if gym_action[i] == 2 connect substation to bus 1
+                # if gym_action[i] == 3 connect substation to bus 2
+                g2op_action.set_bus = [(self.substation_key[i], gym_action[i]-1)]
+
+        return g2op_action
+
+
+# Gymnasium environment wrapper around Grid2Op environment
+class Gym2OpEnv(gym.Env):
+    def __init__(self):
+        super().__init__()
+
+        self._backend = LightSimBackend()
+        self._env_name = "l2rpn_case14_sandbox"  # DO NOT CHANGE
+
+        action_class = PlayableAction
+        observation_class = CompleteObservation
+        reward_class = CombinedScaledReward  # Setup further below
+
+        # DO NOT CHANGE Parameters
+        # See https://grid2op.readthedocs.io/en/latest/parameters.html
+        p = Parameters()
+        p.MAX_SUB_CHANGED = 4  # Up to 4 substations can be reconfigured each timestep
+        p.MAX_LINE_STATUS_CHANGED = 4  # Up to 4 powerline statuses can be changed each timestep
+
+        # Make grid2op env
+        self._g2op_env = grid2op.make(
+            self._env_name, backend=self._backend, test=False,
+            action_class=action_class, observation_class=observation_class,
+            reward_class=reward_class, param=p
+        )
+
+        ##########
+        # REWARD #
+        ##########
+        # NOTE: This reward should not be modified when evaluating RL agent
+        # See https://grid2op.readthedocs.io/en/latest/reward.html
+        cr = self._g2op_env.get_reward_instance()
+
+        # Add your custom N1 reward (with illegal action penalty)
+        cr.addReward("N1", N1Reward(), 1.0)  # Using your custom N1Reward_Custom
+
+        # Add other rewards if needed
+        cr.addReward("L2RPN", L2RPNReward(), 1.0)  # Keep the original L2RPN reward
+
+        # Initialize the reward system
+        cr.initialize(self._g2op_env)
+        ##########
+        ##########
+        # REWARD SHAPING FOR ILLEGAL ACTIONS #
+        ##########
+        # Apply an additional penalty for illegal actions directly in the environment
+        def shaped_reward(action, env, has_error, is_done, is_illegal, is_ambiguous):
+            # Penalize illegal actions with -0.25
+            if is_illegal:
+                return -0.25
+            # Otherwise, combine the other rewards (N1 and L2RPN)
+            reward = cr(action, env, has_error, is_done, is_illegal, is_ambiguous)
+            return reward
+
+        # Override the environment's reward method to include the penalty for illegal actions
+        self._g2op_env.reward_helper = shaped_reward
+
+        self._gym_env = gym_compat.GymEnv(self._g2op_env)
+
+        self.setup_observations()
+        self.setup_actions()
+
+        self.observation_space = self._gym_env.observation_space
+        self.action_space = self._gym_env.action_space
+
+
+
+    def setup_observations(self):
+        pass
+
+    def setup_actions(self):
+        """
+            You will encounter a large amount of actions that will straight up just kill the grid, this is fine
+            To overcome it, the model needs to learn what will and wont kill the grid
+        """
+        self._gym_env.action_space = reducedActionSpace(self._g2op_env)
+        #self._gym_env.action_space = reducedActionSpace(self._g2op_env)
+
+
+    def reset(self, seed=None):
+        return self._gym_env.reset(seed=seed, options=None)
+
+    def step(self, action):
+        return self._gym_env.step(action)
+
+    def render(self):
+        return self._gym_env.render()

@@ -56,11 +56,6 @@ class Gym2OpEnv(gym.Env):
         #  - Notebooks: https://github.com/rte-france/Grid2Op/tree/master/getting_started
 
     def setup_actions(self):
-        # self.action_space = MultiDiscrete(
-        #     #[2] * 57 + [2] * 20 + [3] * 57 + [3] * 20
-        #     [3] * 57 + [3] * 20
-        # )
-        # print("Flattened action space setup complete.")
         act_attr_to_keep = ["set_line_status", "set_bus"]
         self._gym_env.action_space = DiscreteActSpace(self._g2op_env.action_space, attr_to_keep=act_attr_to_keep)
         self.action_space = Discrete(self._gym_env.action_space.n)
@@ -70,15 +65,6 @@ class Gym2OpEnv(gym.Env):
         return self._gym_env.reset(seed=seed, options=None)
 
     def step(self, action):
-        # unflatten the action into original components and then combine them
-        # combined_action = {
-        #     #'change_bus': action[:57],
-        #     #'change_line_status': action[57:77],
-        #     #'set_bus': action[77:134],
-        #     #'set_line_status': action[134:]
-        #     'set_bus': action[:57],
-        #     'set_line_status': action[57:]
-        # }
         return self._gym_env.step(action)
 
     def render(self):

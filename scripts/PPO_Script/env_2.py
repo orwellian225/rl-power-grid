@@ -34,9 +34,7 @@ import gymnasium.spaces as gs
 class reducedActionSpace(gs.MultiDiscrete):
     def __init__(self,
                  env,
-                 substation_key = [1,4,7,9,16,21,23,26,28,29,32,33],
-                 curtail_bin_counts=11,
-                 redispatch_bin_counts=11
+                 substation_key = [1,4,7,9,16,21,23,26,28,29,32,33]
                  ):
 
         self.template_action = env.action_space()
@@ -44,30 +42,6 @@ class reducedActionSpace(gs.MultiDiscrete):
         self.num_generators = env.n_gen
         # 1st value is sub-1,4,7,9,16,23,26,28,33
         space = [4] * len(substation_key)
-        self.num_curtail_bins = curtail_bin_counts
-        self.curtail_mask = env.gen_renewable
-        if curtail_bin_counts != 0:
-            self.curtail_bins = np.linspace(
-                start=0.,  # these numbers are pulled from the limits on the "curtailment" observation
-                stop=1.,
-                num=curtail_bin_counts
-            )
-            space += [curtail_bin_counts + 1] * self.num_generators
-
-        self.redispatch_bins = []
-        self.num_redispatch_bins = redispatch_bin_counts
-        self.dispatch_mask = env.gen_redispatchable
-        max_dispatches = env.gen_max_ramp_up
-        min_dispatches = env.gen_max_ramp_down
-        if redispatch_bin_counts != 0:
-            for i in range(env.n_gen):
-                self.redispatch_bins.append(np.linspace(
-                    start=min_dispatches[i],
-                    stop=max_dispatches[i],
-                    num=redispatch_bin_counts
-                ))
-                space += [redispatch_bin_counts + 1]
-
         super().__init__(space)
 
     def close(self):
@@ -85,25 +59,6 @@ class reducedActionSpace(gs.MultiDiscrete):
                 # if gym_action[i] == 3 connect substation to bus 2
                 g2op_action.set_bus = [(self.substation_key[i], gym_action[i]-1)]
 
-        if self.num_curtail_bins != 0:
-            start_curtail = len(self.substation_key)
-            curtails = []
-            for i in range(self.num_generators):
-                if self.curtail_mask[i] and gym_action[start_curtail + i] != 0:
-                    curtails.append(
-                        (i, self.curtail_bins[gym_action[start_curtail + i] - 1])
-                    )
-
-            g2op_action.curtail = curtails
-
-        if self.num_redispatch_bins != 0:
-            start_redispatch = start_curtail + self.num_generators
-            dispatches = np.zeros(self.num_generators)
-            for i in range(self.num_generators):
-                if gym_action[start_redispatch + i - 1] != 0:
-                    dispatches[i] = self.redispatch_bins[i][gym_action[start_redispatch + i] - 1]
-
-            g2op_action.redispatch = dispatches * self.dispatch_mask
         return g2op_action
 
 
@@ -162,7 +117,9 @@ class Gym2OpEnv(gym.Env):
             You will encounter a large amount of actions that will straight up just kill the grid, this is fine
             To overcome it, the model needs to learn what will and wont kill the grid
         """
-        self._gym_env.action_space = reducedActionSpace(self._g2op_env, curtail_bin_counts=5, redispatch_bin_counts=5)
+        self._gym_env.action_space = reducedActionSpace(self._g2op_env)
+        #self._gym_env.action_space = reducedActionSpace(self._g2op_env)
+
 
     def reset(self, seed=None):
         return self._gym_env.reset(seed=seed, options=None)
