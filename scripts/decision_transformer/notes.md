@@ -1,5 +1,8 @@
 # The Decision Transformer
 
+>[!WARNING]
+> All this information has been moved into the writeup of the project 
+
 ## How it Works
 
 ## Baseline
@@ -8,6 +11,8 @@
 
 ### Alpha
 
+Data / Action space changes
+
 ### Bravo
 
-### Charlie
+Architectural Changes
