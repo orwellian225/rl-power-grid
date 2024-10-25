@@ -11,6 +11,9 @@
 
 * grid2op - `pip install grid2op`
 * lightsim2grid - `pip install lightsim2grid`
+* pytorch
+* stable baslines 3 - `pip install stable-baselines3` - PPO and DQN
+* transformers - `pip install transformers` - Decision Transformer
 
 ## Running
 
@@ -24,7 +27,7 @@
 | alpha | 2 |
 | bravo | 0 |
 | bravo | 1 |
-| bravo | 3 |
+| bravo | 2 |
 
 > More Information available in `./scripts/decision_transformer/notes.md`
 
