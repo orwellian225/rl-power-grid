@@ -23,8 +23,8 @@ agent_configuration = int(sys.argv[2])
 agent_info = agents[agent_improvement][agent_configuration]
 hyperparams = agent_info["hyperparams"]
 
-log = False
-save = False
+log = True
+save = True
 
 def discounted_returns(timesteps, rewards, discount_factor):
     discounted_rewards = discount_factor**timesteps * rewards
@@ -50,7 +50,7 @@ def load_data(filname, _print=False):
         num_sar_tuples += 1
 
         timestep = int(line[0])
-        observation = np.array(line[1][2:-1].split(), dtype=np.float32)
+        observation = np.array(line[1][1:-1].split(), dtype=np.float32)
         action = np.array(line[2][1:-1].split(), dtype=np.float32)
         reward = float(line[3])
 
