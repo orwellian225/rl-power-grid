@@ -4,7 +4,8 @@ from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.monitor import Monitor
 import os
 
-#from ppo_env import Gym2OpEnv  # Assuming you move the environment class to another file
+#from ppo_env import Gym2OpEnv
+#from env_2 import Gym2OPEnv
 from env_2_train import Gym2OpEnv
 
 def train_ppo(total_timesteps=40000, save_path="ppo_grid2op_improv2", load_existing=False):
