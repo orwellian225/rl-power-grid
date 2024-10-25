@@ -34,3 +34,17 @@
 * Evaluating: `python3 ./scripts/decision_transformer/evaluate.py <agent_improvement> <agent_configuration>`
 * Data Generation: `python3 ./scripts/decision_transformer/generate.py <agent_improvement> <agent_configuration> <num_trajectories>`
 * Training: `python3 ./scripts/decision_transformer/train.py <agent_improvement> <agent_configuration>`
+To run baseline DQN Model:
+```bash
+python train_dqn_baseline.py
+```
+
+To run Improvement 1 DQN Model:
+```bash
+python train_dqn_improvement_1.py
+```
+
+To run Improvement 2 DQN Model:
+```bash
+python train_dqn_improvement_2.py
+```
