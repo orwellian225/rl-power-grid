@@ -34,6 +34,9 @@
 * Evaluating: `python3 ./scripts/decision_transformer/evaluate.py <agent_improvement> <agent_configuration>`
 * Data Generation: `python3 ./scripts/decision_transformer/generate.py <agent_improvement> <agent_configuration> <num_trajectories>`
 * Training: `python3 ./scripts/decision_transformer/train.py <agent_improvement> <agent_configuration>`
+
+### DQN
+
 To run baseline DQN Model:
 ```bash
 python train_dqn_baseline.py
@@ -48,3 +51,15 @@ To run Improvement 2 DQN Model:
 ```bash
 python train_dqn_improvement_2.py
 ```
+
+### Running PPO
+
+The train and testing environments are straight to run. 
+The reader is required to read the comments in the files
+and can adjust the parameters of directories accordingly.
+
+The environments have been duplicated to help with the certain iteration.
+`ppo_env.py` is used as the baseline case. 
+Please uncomment this in the training and the test file when in this case.
+Similarly, use the environemtn `env_2.py` for the 1 iteration.
+Finally, use the environemnt `env_2_train.py` for the reward shaping iteration 2.
