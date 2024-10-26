@@ -1,4 +1,4 @@
-# COMS40 RL Assignment
+# COMS4061A RL Assignment
 
 ## Group Members
 
