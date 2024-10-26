@@ -88,6 +88,7 @@ def get_batch(batch_size=256, max_len=agent_info["architecture"]["num_tokens"]):
         traj_end = traj_start + traj_lens[traj_i]
         si = random.randint(traj_start, traj_end)
 
+        # If a selected sequence is shorter than the required length, pad it.
         if si + max_len > traj_end:
             overflow = si + max_len - traj_end
             s.append(np.concatenate([np.zeros((1, overflow, state_dim)), states[si:traj_end].reshape(1, -1, state_dim)], axis=1))
@@ -131,7 +132,7 @@ def eval_episodes(target_rew):
                     model,
                     max_ep_len=hyperparams["max_episode_len"],
                     scale=1,
-                    target_return=target_rew/1,
+                    target_return=target_rew/1, # when predicting an action from the sequence, we need some kind of reward target to use in the prediction sequence alongside the current state
                     mode="normal",
                     device=device
                 )
@@ -154,6 +155,8 @@ env = Gym2OpEnv(
 )
 
 timesteps, states, actions, rewards = load_data(agent_info["meta"]["data_file"], _print=False)
+
+# Split the read data into individual trajectories
 trajectories = np.where(timesteps == 0)[0]
 num_trajectories = len(trajectories)
 traj_lens = np.append(timesteps[trajectories[1:] - 1] + 1, timesteps[-1] + 1)
@@ -186,7 +189,7 @@ model = DecisionTransformer(
         activation_function="relu",
         n_positions=1024,
         resid_pdrop=hyperparams["dropout"],
-        attn_pdrop=hyperparams["dropout"], # dropout
+        attn_pdrop=hyperparams["dropout"], 
         action_relu=True
     )
 model.train()
@@ -209,7 +212,7 @@ trainer = SequenceTrainer(
     batch_size=hyperparams["batch_size"],
     get_batch=get_batch,
     scheduler=scheduler,
-    loss_fn=lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a)**2),
+    loss_fn=lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a)**2), # training towards actions only. 
     eval_fns=[eval_episodes(tar) for tar in [hyperparams["target_return"]]],
 )
 

@@ -3,16 +3,5 @@
 >[!WARNING]
 > All this information has been moved into the writeup of the project 
 
-## How it Works
-
-## Baseline
-
-## Improvements 
-
-### Alpha
-
-Data / Action space changes
-
-### Bravo
-
-Architectural Changes
+The decision transformer is politely stolen from [the original decision transformer paper](https://github.com/kzl/decision-transformer).
+It was modified to work with the Grid2Op environment

@@ -14,6 +14,15 @@ from lightsim2grid import LightSimBackend
 import gymnasium.spaces as gs
 
 class ConfigurableActions(gs.MultiDiscrete):
+    """
+        A class that makes it easier to configure and then flatten the actions of the Grid2Op environment
+
+        modifying_bus_keys - an array of bus ids that can be modified. Defaults to all available buses in the environment
+        modifying_bus_count - the number of buses that can be modified each timestep
+        modifying_line_keys - an array of line ids that can be modified. Defaults to all available lines in the environment
+        curtail_bin_counts - Discretize the curtail action of each generator into the specified number of bins. 0 bins will turn off the action
+        redispatch_bin_counts - Discretize the redispatch action of each generator into the specified number of bins. 0 bins will turn off redispatch
+    """
     def __init__(self, g2op_env,
             modifying_bus_keys=None,
             modifying_bus_count=4,
@@ -45,7 +54,7 @@ class ConfigurableActions(gs.MultiDiscrete):
         multidiscrete_space += [len(self.line_keys) + 1] * self.modifiable_lines # +1 to add a no action value
 
         self.num_curtail_bins = curtail_bin_counts
-        self.curtail_mask = g2op_env.gen_renewable
+        self.curtail_mask = g2op_env.gen_renewable # only some generators can be curtailed. Mask out the generators that can't.
         if curtail_bin_counts != 0:
             self.curtail_bins = np.linspace(
                 start=0., # these numbers are pulled from the limits on the "curtailment" observation
@@ -56,7 +65,7 @@ class ConfigurableActions(gs.MultiDiscrete):
 
         self.redispatch_bins = []
         self.num_redispatch_bins = redispatch_bin_counts
-        self.dispatch_mask = g2op_env.gen_redispatchable
+        self.dispatch_mask = g2op_env.gen_redispatchable # only some generators have the redispatch action available, so just mask out any action of the unmodifiable generators
         max_dispatches = g2op_env.gen_max_ramp_up
         min_dispatches = g2op_env.gen_max_ramp_down
         if redispatch_bin_counts != 0:
@@ -81,6 +90,12 @@ class ConfigurableActions(gs.MultiDiscrete):
 
     def from_gym(self, gym_action):
         g2op_action = self.template_action.copy()
+
+        # For each action type, scan through the array and ready the value for each corresponding action
+        # For example: With 4 modifiable bus, 4 modifiable lines, 11 bins for curtail and redispatch,
+        # there are 4 + 4 + num_generators + num_generators actions in the single array
+        #
+        # There num_generators is a value from 0 to the number of bins + 1
 
         for bus_idx in gym_action[:self.modifiable_buses]:
             if bus_idx != 0:

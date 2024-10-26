@@ -1,3 +1,8 @@
+"""
+    A hardcoded dictionary for a fast lookup of agent information
+    - Should technically be json file that can be parsed but it's not that different to just hardcoding it
+"""
+
 agents = {
     "baseline": [{
         "meta": {

@@ -46,6 +46,7 @@ for r in range(num_trajectories):
         else:
             action = env.action_space.no_action()
 
+        # Generate a random mask to ocasionally simplify the action taken 
         if masked:
             num_masked_actions = random.randint(0, env.action_space.shape[0] - 1)
             mask = np.ones(env.action_space.shape, dtype=np.int32)
