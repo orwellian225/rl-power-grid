@@ -6,7 +6,8 @@ import os
 import pandas as pd
 
 #from ppo_env import Gym2OpEnv
-from env_2 import Gym2OpEnv
+#from env_2 import Gym2OPEnv
+from env_2_train import Gym2OpEnv
 
 
 # Apply a moving average to smooth the data
